@@ -5,6 +5,24 @@ This tutorial covers two things:
 1. **How to use Gilbreth** — connect from VSCode, set up your environment, and submit jobs
 2. **How to train a ResNet model** — run the provided training script on CIFAR-10 end-to-end
 
+## Table of Contents
+
+- [Prerequisites](#prerequisites)
+- [Part 1: How to Use Gilbreth](#part-1-how-to-use-gilbreth)
+  - [1.1 Connect to Gilbreth via VSCode Remote-SSH](#11-connect-to-gilbreth-via-vscode-remote-ssh)
+  - [1.2 Set Up the Python Environment](#12-set-up-the-python-environment)
+  - [1.3 Tips](#13-tips)
+- [Part 2: Train a ResNet Model on Gilbreth](#part-2-train-a-resnet-model-on-gilbreth)
+  - [2.0 SLURM: Submit and Manage Jobs](#20-slurm-submit-and-manage-jobs)
+  - [2.1 Quick Start](#21-quick-start)
+  - [2.2 Repository Structure](#22-repository-structure)
+  - [2.3 Model Overview (`resnet.py`)](#23-model-overview-resnetpy)
+  - [2.4 Training Script (`train.py`)](#24-training-script-trainpy)
+  - [2.5 Run Training Step by Step](#25-run-training-step-by-step)
+  - [2.6 Expected Output](#26-expected-output)
+  - [2.7 Load a Saved Checkpoint](#27-load-a-saved-checkpoint)
+- [References](#references)
+
 ## Prerequisites
 
 - A Purdue career account with Gilbreth access (request via [RCAC](https://www.rcac.purdue.edu/account/request))
