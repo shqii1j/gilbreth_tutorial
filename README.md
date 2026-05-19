@@ -45,12 +45,13 @@ Host gilbreth
 
 ### Step 3: First Time Connect
 
-1. Open the VSCode Terminal
-2. Type `ssh gilbreth` and enter
-3. Enter your Purdue ID passcode. If you use Duo push to authorize, add `,push` after your passcode
-4. Authenticate with your Purdue credentials
+1. Open VSCode.
+2. Click the green **`><`** icon at the bottom-left corner (or open the Command Palette with `Ctrl+Shift+P`) and select **Remote-SSH: Connect to Host…** → **gilbreth**. A new VSCode window will open and prompt for credentials.
+3. Enter your Purdue career account passcode. If you use Duo Push, append `,push` to your password (e.g. `mypassword,push`) and approve the push on your phone.
+4. Wait while VSCode installs its server component on the remote host — this takes about a minute the first time, and is cached for subsequent connections.
+5. Once connected, open the **File** menu → **Open Folder…** and pick the folder you want to work in (e.g. `/home/YOUR_USERNAME`). The Explorer pane will then show the contents of Gilbreth, not your laptop.
 
-VSCode will install its server component on first connection. This takes about a minute.
+> The bottom-left status bar should now read **SSH: gilbreth** — that's how you confirm the window is operating on the remote.
 
 ### Step 4: Verify
 
