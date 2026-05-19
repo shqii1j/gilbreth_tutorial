@@ -34,7 +34,7 @@ There are two options to set up SSH config:
  (1) Open your local SSH config file directly. On Mac/Linux: `~/.ssh/config`. On Windows: `C:\Users\<you>\.ssh\config`.
  (2) Open VSCode, go to the Remote Explorer tab, click the gear icon, and select your SSH config file.
 
-Add this block (replace `YOUR_USERNAME` with your Purdue career account):
+Add this block (replace `YOUR_USERNAME` with your Purdue career account `lastnamexxx`):
 
 ```
 Host gilbreth
