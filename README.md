@@ -9,7 +9,6 @@ This tutorial covers two things:
 
 - A Purdue career account with Gilbreth access (request via [RCAC](https://www.rcac.purdue.edu/account/request))
 - [VSCode](https://code.visualstudio.com/) installed on your local machine
-- A Gilbreth compute allocation (your instructor will provide the allocation name)
 
 ---
 
