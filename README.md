@@ -24,13 +24,15 @@ Open VSCode, go to the Extensions tab (`Ctrl+Shift+X`), and install:
 ms-vscode-remote.remote-ssh
 ```
 
+![VSCode Remote-SSH extension](assets/remote-ssh.png)
+
 Also install the **Python** extension (`ms-python.python`) for code editing support.
 
 ### Step 2: Configure SSH
 
 There are two options to set up SSH config:
- (1) Open your local SSH config file locally. On Mac/Linux: `~/.ssh/config`. On Windows: `C:\Users\<you>\.ssh\config`.
- (2) Open VSCode, go to the Remote Explore tab, click setting, selct SSH config file.
+ (1) Open your local SSH config file directly. On Mac/Linux: `~/.ssh/config`. On Windows: `C:\Users\<you>\.ssh\config`.
+ (2) Open VSCode, go to the Remote Explorer tab, click the gear icon, and select your SSH config file.
 
 Add this block (replace `YOUR_USERNAME` with your Purdue career account):
 
@@ -43,7 +45,7 @@ Host gilbreth
 
 ### Step 3: First Time Connect
 
-1. Open the VSCode Teminal
+1. Open the VSCode Terminal
 2. Type `ssh gilbreth` and enter
 3. Enter your Purdue ID passcode. If you use Duo push to authorize, add `,push` after your passcode
 4. Authenticate with your Purdue credentials
@@ -60,7 +62,7 @@ hostname
 
 You should see something like `gilbreth-fe00.rcac.purdue.edu`. This confirms you are on a Gilbreth **login node**.
 
-> **Warning**: Do NOT run training or heavy computation on login nodes. Always use SLURM (see Section 1.3).
+> **Warning**: Do NOT run training or heavy computation on login nodes. Always use SLURM (see Section 2.0).
 
 ### Step 5: Login without Passcode (SSH Key)
 
@@ -114,17 +116,58 @@ Now VSCode Remote-SSH will connect without a passcode.
 
 ## 1.2 Set Up the Python Environment
 
-Run the following commands in the VSCode terminal (on the Gilbreth login node):
+Run the following commands in the VSCode terminal (on the Gilbreth login node).
+
+### Step 1: Install Miniconda 3
+
+We recommend installing your own Miniconda 3 in your `$HOME` so the installer can set up `conda init` for you. Miniconda itself is small (~500 MB); only the *packages and environments* are big, and we keep those small with the conda config below.
 
 ```bash
-# Clean module environment
-module purge
+# Start in your home directory
+cd ~
 
-# Load required modules
-module load anaconda
-module load cuda
+# Download the latest Miniconda 3 installer for Linux x86_64
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 
-# Create a new conda environment
+# Run the installer
+bash Miniconda3-latest-Linux-x86_64.sh
+```
+
+During the installer prompts:
+- Press `Enter` to review the license, then type `yes` to accept it
+- When asked for the install location, accept the default `/home/YOUR_USERNAME/miniconda3`
+- When asked whether to run `conda init`, type `yes`
+
+To make sure the module environment is cleaned and CUDA is loaded **every time** you start a new shell, append the following lines to the end of your `~/.bashrc`:
+
+```bash
+# Clean module environment and load CUDA for GPU support
+module --force purge
+module --force unload xalt
+```
+
+> The `xalt` module is loaded by default on Gilbreth and can interfere with conda/pip; force-unloading it avoids subtle issues. `--force` ensures sticky modules are also removed.
+
+Reload your shell so `conda` is on `PATH`:
+
+```bash
+source ~/.bashrc
+```
+
+Verify the install:
+
+```bash
+which conda
+conda --version
+```
+
+> If you prefer to use the cluster-provided Anaconda instead of your own install, you can skip Step 1 and run `module load anaconda` before the next step. The Miniconda 3 route is preferred because it gives you full control of the installation and avoids module conflicts.
+
+
+Now create the conda environment:
+
+```bash
+# Create a new conda environment with Python 3.10
 conda create -n stat695 python=3.10 -y
 
 # Activate the environment
@@ -134,102 +177,16 @@ conda activate stat695
 pip install torch torchvision
 
 # Verify installation
-python -c "import torch; print('PyTorch version:', torch.__version__)"
+python -c "import torch; print('PyTorch version:', torch.__version__); print('CUDA available:', torch.cuda.is_available())"
 ```
 
-### Select the Python Interpreter in VSCode
+### Step 2: Select the Python Interpreter in VSCode
 
 1. `Ctrl+Shift+P` > `Python: Select Interpreter`
 2. Choose the `stat695` conda environment from the list
 
 
-## 1.3 SLURM: Submit and Manage Jobs
-
-Gilbreth uses the [SLURM](https://slurm.schedmd.com/) scheduler. You must submit jobs to get GPU access.
-
-### Interactive Session (for debugging and short experiments)
-
-```bash
-sinteractive -A YOUR_ALLOCATION -n 4 -N 1 --gpus-per-node=1 -t 02:00:00
-```
-
-| Flag | Meaning |
-|------|---------|
-| `-A YOUR_ALLOCATION` | Your compute allocation name |
-| `-n 4` | 4 CPU cores |
-| `-N 1` | 1 node |
-| `--gpus-per-node=1` | 1 GPU |
-| `-t 02:00:00` | 2-hour time limit |
-
-Once on the compute node, load modules and activate your environment:
-
-```bash
-module purge && module load anaconda cuda
-conda activate stat695
-```
-
-Verify GPU access:
-
-```bash
-nvidia-smi
-```
-
-### Batch Job Script
-
-For longer training runs, create a script `run.sh`:
-
-```bash
-#!/bin/bash
-#SBATCH --job-name=stat695_train
-#SBATCH --account=YOUR_ALLOCATION
-#SBATCH --nodes=1
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=4
-#SBATCH --gpus-per-node=1
-#SBATCH --time=04:00:00
-#SBATCH --output=logs/%j.out
-#SBATCH --error=logs/%j.err
-
-# Create log directory
-mkdir -p logs
-
-# Load modules
-module purge
-module load anaconda cuda
-
-# Activate environment
-conda activate stat695
-
-# Run training
-python train.py --model resnet18 --epochs 10 --lr 0.01 --batch_size 128 --pretrained
-```
-
-Submit the job:
-
-```bash
-mkdir -p logs
-sbatch run.sh
-```
-
-### Useful SLURM Commands
-
-```bash
-# Check your job status
-squeue -u $USER
-
-# Cancel a job
-scancel JOB_ID
-
-# View detailed job info
-scontrol show job JOB_ID
-
-# Check GPU availability on the cluster
-sinfo -p gpu
-```
-
----
-
-## 1.4 Tips
+## 1.3 Tips
 
 - **Use `screen` for persistent sessions**: Login node sessions can disconnect. Start a `screen` session so your terminal survives:
   ```bash
@@ -245,29 +202,97 @@ sinfo -p gpu
   Scratch is purged periodically — back up important results.
 
 - **Soft Link**:
-  If your home directory runs out of space, create folders on scratch (/scratch/gilbreth/$YOUR_USERNAME). For example:
+  If your home directory runs out of space, create folders on scratch (`/scratch/gilbreth/$USER/`). For example:
   ```bash
-  mkdir /scratch/gilbreth/$YOUR_USERNAME/data
-  ln -s /scratch/gilbreth/$YOUR_USERNAME/data ./data
+  mkdir -p /scratch/gilbreth/$USER/data
+  ln -s /scratch/gilbreth/$USER/data ./data
   ```
+  `$USER` automatically expands to your Purdue username — no need to substitute manually.
 
 - **Avoid module conflicts**: Always run `module purge` before loading modules.
 
 ---
 
 # Part 2: Train a ResNet Model on Gilbreth
+## 2.0 SLURM: Submit and Manage Jobs
+Refer to the [RCAC Gilbreth "Running Jobs" guide](https://www.rcac.purdue.edu/knowledge/gilbreth/run) for the full list of queues, partitions, and submission options — the snippets below cover the common cases for this class.
 
-## 2.0 Quick Start
+> **Tip — find your allocation name with `myquota`.** Run `myquota` on the login node and look at the rows with `Type = depot`. The `Location` column is your allocation name. For example, STAT students should see `statdept` — that is the value to plug into `-A YOUR_ALLOCATION` in the table below.
+
+| Flag | Required? | Meaning |
+|------|-----------|---------|
+| `-A YOUR_ALLOCATION` | required | Your compute allocation name (see the `myquota` tip above — STAT students use `statdept`) |
+| `-N 1` | required | Number of nodes (1 is almost always what you want) |
+| `-n 4` | required | Number of CPU cores |
+| `--gpus-per-node=1` | required | Number of GPUs per node |
+| `--mem=50G` | required | Memory per node (e.g. `50G` requests 50 GB of RAM) |
+| `-t 02:00:00` | required | Wall-clock time limit in `HH:MM:SS` (maximum is `04:00:00`) |
+| `-p a30` | optional | Request a specific GPU type (e.g. `a30`); omit to let SLURM pick any available GPU |
+
+## 2.1 Quick Start
 ```
+mkdir -p ~/project
+cd ~/project
+git clone https://github.com/INSTRUCTOR/stat695.git stat695
+cd stat695
+```
+Datasets and checkpoints are too large for `$HOME` (25 GB quota). Store them on scratch (effectively unlimited) and create symbolic links so `./data` and `./checkpoints` inside the repo still resolve to the scratch copies — that way `train.py` can keep its default paths and you can browse the files from VSCode as if they were local.
+
+```bash
+# Create the real folders on scratch
+mkdir -p /scratch/gilbreth/$USER/stat695/data
+mkdir -p /scratch/gilbreth/$USER/stat695/checkpoints
+
+# From the repo root (~/project/stat695), link them in
+ln -s /scratch/gilbreth/$USER/stat695/data ./data
+ln -s /scratch/gilbreth/$USER/stat695/checkpoints ./checkpoints
+```
+
+### Option 1: Interactive Session (for debugging and short experiments)
+```bash
+sinteractive -A YOUR_ALLOCATION -n 4 -N 1 --gpus-per-node=1 --mem=50G -t 02:00:00
+```
+Once on the compute node, activate your environment and run the jobs:
+
+```bash
+cd ~/project/stat695
 conda activate stat695
-mkdir /scratch/gilbreth/$YOUR_USERNAME/data
-ln -s /scratch/gilbreth/$YOUR_USERNAME/data ./data
-mkdir /scratch/gilbreth/$YOUR_USERNAME/checkpoints
-ln -s /scratch/gilbreth/$YOUR_USERNAME/checkpoints ./checkpoints
 sh run.sh
 ```
+### Option 2: Batch Job Script
 
-## 2.1 Repository Structure
+For longer training runs, create a shell script `run.sh` in the repo root:
+
+```bash
+#!/bin/bash
+#SBATCH --job-name=stat695_train
+#SBATCH --account=YOUR_ALLOCATION
+#SBATCH --nodes=1
+#SBATCH --ntasks=4
+#SBATCH --gpus-per-node=1
+#SBATCH --mem=50G
+#SBATCH --time=04:00:00
+#SBATCH --output=logs/%j.out
+#SBATCH --error=logs/%j.err
+
+# Activate environment
+conda activate stat695
+
+# Run training
+python train.py --model resnet18 --epochs 10 --lr 0.01 --batch_size 128 --pretrained
+```
+
+Submit the job:
+
+```bash
+mkdir -p logs
+sbatch run.sh
+```
+
+Edit the `#SBATCH` directives at the top of `run.sh` to tune the submission — e.g. change `--time`, `--mem`, `--gpus-per-node`, or add `#SBATCH -p a30` to request a specific GPU type. The flags accepted are the same ones documented in the Interactive Session table above; `sbatch` simply reads them from the script header instead of the command line.
+
+
+## 2.2 Repository Structure
 
 ```
 stat695/
@@ -277,7 +302,7 @@ stat695/
 └── run.sh          # SLURM batch script (you create this)
 ```
 
-## 2.2 Model Overview (`resnet.py`)
+## 2.3 Model Overview (`resnet.py`)
 
 Three model architectures are provided:
 
@@ -296,7 +321,7 @@ Three model architectures are provided:
 - `get_ha=True`: Return hidden activations from each residual block
 - `get_ha_x=True`: Include the stem output in hidden activations
 
-## 2.3 Training Script (`train.py`)
+## 2.4 Training Script (`train.py`)
 
 The provided `train.py` is a complete, self-contained script that:
 - Loads CIFAR-10 with standard ImageNet normalization
@@ -324,20 +349,19 @@ python train.py --help
 | `--num_workers` | `4` | DataLoader workers |
 | `--pretrained` | off | Use ImageNet pretrained weights |
 
-> warning: data and checkpoints are usually too large for /home, you will need to create folders on scratch and use soft link to make sure you can check your data and results under current folders (See 1.4)
+> **Warning**: `./data` and `./checkpoints` will grow far beyond the 25 GB `$HOME` quota. Put the real folders on scratch and symlink them in — see Section 2.1 for the exact commands.
 
 ---
 
-## 2.4 Run Training Step by Step
+## 2.5 Run Training Step by Step
 
 ### Option A: Interactive Session
 
 ```bash
 # 1. Request a GPU node
-sinteractive -A YOUR_ALLOCATION -n 4 -N 1 --gpus-per-node=1 -t 02:00:00
+sinteractive -A YOUR_ALLOCATION -n 4 -N 1 --gpus-per-node=1 --mem=50G -t 02:00:00
 
-# 2. Set up environment
-module purge && module load anaconda cuda
+# 2. Activate the environment
 conda activate stat695
 
 # 3. Navigate to the project
@@ -356,7 +380,6 @@ python train.py --model resnet50 --epochs 10 --lr 0.01 --batch_size 64 --pretrai
 
 ```bash
 # Create and submit the batch script
-mkdir -p logs
 sbatch run.sh
 
 # Monitor the job
@@ -366,7 +389,7 @@ squeue -u $USER
 tail -f logs/<JOB_ID>.out
 ```
 
-## 2.5 Expected Output
+## 2.6 Expected Output
 
 When training runs successfully, you will see output like this:
 
@@ -392,7 +415,7 @@ Best checkpoint saved to: ./checkpoints/resnet18_best.pth
 
 > Exact numbers will vary. With pretrained weights and 10 epochs, expect ~85-90% test accuracy on CIFAR-10 with ResNet18.
 
-## 2.6 Load a Saved Checkpoint
+## 2.7 Load a Saved Checkpoint
 
 To load a trained model for inference or further training:
 
